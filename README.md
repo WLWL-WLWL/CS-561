@@ -1,3 +1,3 @@
 # CS-561
 
-Database 
+SIT CS-561-Database 
