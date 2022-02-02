@@ -1,0 +1,148 @@
+/*	CS561A-HW1
+	NAME: WEILI LIU 
+ 	CWID: 10471020
+*/
+
+Q1 
+with a as (
+	select cust,max(quant) as max_q, min(quant)as min_q, avg(quant) as avg_q
+	from sales 
+	group by cust), 
+b as(
+	select a.cust,a.max_q, sales.prod as max_prod, sales. date as max_date, sales.state as max_state, a.avg_q
+	from  a, sales
+	where a.cust= sales.cust and a.max_q= sales.quant), 
+c as (
+	select a.cust,a.min_q, sales.prod as min_prod, sales. date as min_date, sales.state as min_state,a.avg_q
+	from  a, sales
+	where a.cust= sales.cust and sales.prod= sales.prod and a.min_q= sales.quant)
+	
+	select b.cust, b.max_prod, b.max_q, b.max_date, b.max_state, c.min_prod, c.min_q,c.min_date, c.min_state, b.avg_q
+	from b NATURAL JOIN c
+	Order by b.cust
+
+Q2
+with a as (
+	select year,month, day,sum(quant)as sum_q
+	from sales	
+	group by year,month,day
+	Order by sales.year,sales.month,sales.day),
+b as(
+	select a.year, a.month, max(sum_q) as max_q, min(sum_q)as min_q
+	from a
+	group by a.year,a.month
+	Order by a.year,a.month),
+c as (
+	 select  a.year, a.month , a.day as busiest_day, b.max_q as busiest_total_q 
+	from a,b
+	where a.year= b.year and a.month= b.month and a.sum_q=b.max_q),
+d as (
+	 select  a.year, a.month, a.day as slowest_day, b.min_q as slowest_total_q 
+	from a,b
+	where a.year= b.year and a.month= b.month and a.sum_q=b.min_q)
+	
+	select  c.year, c.month,c.busiest_day, c.busiest_total_q , d.slowest_day,d.slowest_total_q 
+	from c NATURAL JOIN d
+	
+Q3
+with a as(
+	select cust, prod,sum(quant) as sum_q
+	from sales
+	group by cust, prod
+	Order by cust),
+b as(
+	select  a.cust,  max(sum_q) as max_q, min(sum_q) as min_q
+	from a
+ 	group by a.cust
+	Order by cust),
+c as (
+	select a.cust,a.prod as most_fav_prod
+	from a,b
+	where a.cust=b.cust and a.sum_q= b.max_q),
+d as (
+	select a.cust,a.prod as least_fav_prod
+	from a,b
+	where a.cust=b.cust and a.sum_q= b.min_q)
+	
+	select c.cust, c. most_fav_prod, d.least_fav_prod
+	from c NATURAL JOIN d
+
+
+Q4
+with a as(
+	select cust, prod, avg(quant) as spring_avg
+	from sales
+	where month = 3 or month = 4 or month = 5
+	group by cust,prod
+	Order by sales.cust),
+b as(
+	select cust, prod, avg(quant) as summer_avg
+	from sales
+	where month = 6 or month = 7 or month = 8
+	group by cust,prod
+	Order by sales.cust),
+c as(
+	select cust, prod, avg(quant) as fall_avg
+	from sales
+	where month = 9 or month = 10 or month = 11
+	group by cust,prod
+	Order by sales.cust),
+d as(
+	select cust, prod, avg(quant) as winter_avg
+	from sales
+	where month = 12 or month = 1 or month = 2
+	group by cust,prod
+	Order by sales.cust),
+e as(
+	select sales.cust, sales.prod, avg(quant) as avg, sum(quant) as total, count(*) as count
+	from sales
+	group by cust, prod
+	Order by sales.cust)
+
+	select *
+	from a NATURAL JOIN b NATURAL JOIN c NATURAL JOIN d NATURAL JOIN e
+
+Q5
+with a as(
+	select prod, max(quant) as Q1_max
+	from sales
+	where month = 1 or month = 2 or month = 3
+	group by prod ),
+a1 as(
+	select a.prod, a.Q1_max, sales.date as Q1_date
+	from a,sales
+	where a.prod= sales.prod and a.Q1_max=sales.quant and month between 1 and 3	),
+b as(
+	select prod, max(quant) as Q2_max
+	from sales
+	where month = 4 or month = 5 or month = 6
+	group by prod ),
+b1 as(
+	select b.prod, b.Q2_max,sales.date as Q2_date
+	from b,sales
+	where b.prod= sales.prod and b.Q2_max=sales.quant and month between 4 and 6),
+c as(
+	select prod, max(quant) as Q3_max
+	from sales
+	where month = 7 or month = 8 or month = 9
+	group by prod),
+c1 as(
+	select c.prod, c.Q3_max,sales.date as  Q3_date
+	from c,sales
+	where c.prod= sales.prod and c.Q3_max=sales.quant and month between 7 and 9),
+d as(
+	select prod, max(quant) as Q4_max
+	from sales
+	where month = 10 or month = 11 or month = 12
+	group by prod),
+d1 as(
+	select d.prod, d.Q4_max,sales.date as Q4_date
+	from d,sales
+	where d.prod= sales.prod and d.Q4_max=sales.quant and month between 10 and 12)
+
+	select a1.prod, a1.Q1_max,a1.Q1_date, b1.Q2_max, b1.Q2_date,c1.Q3_max, c1.Q3_date, d1.Q4_max, d1.Q4_date
+	from a1 NATURAL JOIN b1 NATURAL JOIN c1 NATURAL JOIN d1
+	Order by a1.prod
+
+
+	
