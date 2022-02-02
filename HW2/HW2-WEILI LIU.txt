@@ -1,0 +1,211 @@
+/*	CS561A-HW2
+	NAME: WEILI LIU 
+ 	CWID: 10471020
+*/
+--Q1
+with q1 as(
+	select s.cust,s.prod,s.month,avg(s.quant)
+	from sales s 
+	group by cust,prod,month 
+	order by cust,prod,month
+),
+q2 as (
+	select s.cust,s.prod,s.month,avg(s.quant)
+	from sales s 
+	group by cust,prod,month 
+	order by cust,prod,month
+),
+q3 as (
+	select s.cust,s.prod,s.month,avg(s.quant)
+	from sales s 
+	group by cust,prod,month 
+	order by cust,prod,month
+)
+select q1.cust CUSTOMER,q1.prod PRODUCT,q1.month,count(sales.quant) as SALES_COUNT_BETWEEN_AVGS 
+from q1 LEFT JOIN q2 on q1.cust=q2.cust and q1.prod=q2.prod and q1.month = q2.month-1
+		LEFT JOIN q3 on q1.cust=q3.cust and q1.prod=q3.prod and q1.month = q3.month+1
+		LEFT JOIN sales on q1.cust= sales.cust and  q1.prod=sales.prod and q1.month= sales.month and sales.quant between  q2.avg and q3.avg
+group by q1.cust,q1.prod,q1.month
+order by q1.cust,q1.prod,q1.month
+
+
+
+--Q2 
+with q1 as (
+	select cust, prod, month , avg (quant) avg 
+	from sales 
+	group by cust,prod,month
+	order by cust
+),
+q2 as (
+	select cust, prod, month , avg (quant) avg 
+	from sales 
+	group by cust,prod,month
+	order by cust
+),
+q3 as(
+	select cust, prod, month , avg (quant) avg 
+	from sales 
+	group by cust,prod,month
+	order by cust
+)
+select q1.cust as customer,q1.prod as product,q1.month,q2.avg as bef_avg,q1.avg as dur_avg ,q3.avg as aft_avg 
+from q1 
+left join q2 on q1.cust=q2.cust and q1.prod =q2.prod and q1.month = q2.month + 1 
+left join q3 on q1.cust=q3.cust and q1.prod = q3.prod and q1.month = q3.month - 1 
+order by q1.cust
+
+
+
+--Q3
+with q1 as (
+ 	select cust, prod, state, avg(quant) as prod_avg
+ 	from sales
+ 	group by cust, prod, state
+	 order by cust, prod, state
+ ),
+q2 as ( --(2) the average sale of the product and the state but for all of the other customers
+	 select a.cust, a.state, a.prod, b.cust as other_cust, b.quant 
+ 	from sales as a, sales as b
+	 where a.prod = b.prod and a.state = b.state and a.cust <> b.cust
+	 group by a.prod, a.state, a.cust, b.cust, b.quant
+	 order by a.prod, a.state, a.cust, b.cust, b.quant
+ ),
+other_cust as (
+ 	select cust, prod, state,avg(quant) as other_cust_avg
+ 	from q2
+	 group by cust, prod,state
+	 order by cust, prod,state
+ ),
+q3 as ( --(3) the customer’s average sale for the given state, but for all of the other products
+ 	select c.cust, c.state, c.prod, d.prod as other_prod, d.quant 
+ 	from sales as c, sales as d
+ 	where c.cust = d.cust and c.state = d.state and c.prod <> d.prod
+	 group by c.cust, c.state, c.prod, d.prod, d.quant
+	 order by c.cust, c.state, c.prod, d.prod, d.quant
+ ),
+other_prod as (
+	 select cust, prod, state,avg(quant) as other_prod_avg
+	 from q3
+ 	group by cust, prod,state
+	 order by cust, prod,state
+ ),
+q4 as ( --(4) the customer’s average sale for the given product, but for all of the other states.
+ 	select e.cust, e.state, e.prod, f.state as other_state, f.quant 
+ 	from sales as e, sales as f
+ 	where e.cust = f.cust and e.prod = f.prod and e.state <> f.state
+	 group by e.cust, e.state, e.prod, f.state, f.quant
+	 order by e.cust, e.state, e.prod, f.state, f.quant
+ ),
+other_state as (
+ 	select cust, prod, state,avg(quant) as other_state_avg
+ 	from q4
+	 group by cust, prod,state
+	 order by cust, prod,state
+)
+select q1.cust, q1.prod, q1.state, q1.prod_avg, other_cust.other_cust_avg,other_prod.other_prod_avg, other_state.other_state_avg
+from q1 NATURAL JOIN other_cust NATURAL JOIN other_prod NATURAL JOIN other_state 
+
+
+
+--Q4
+with q1 as
+(
+	select cust,max(quant) as max_q
+	from sales
+	where state = 'NJ'
+	group by cust
+	order by cust
+),
+q2 as
+(
+	select q1.cust,sales.prod,q1.max_q as quantity,sales.date
+	from q1,sales
+	where q1.cust = sales.cust and sales.quant = q1.max_q
+	group by q1.cust,sales.prod,sales.date,q1.max_q
+),
+q3 as
+(
+	select sales.cust,sales.quant
+	from sales,q2
+	where sales.cust = q2.cust and sales.prod != q2.prod and sales.quant < q2.quantity and sales.state = 'NJ'
+	group by sales.cust,sales.quant
+),
+q4 as
+(
+	select q3.cust,max(q3.quant) as max_q
+	from q3
+	group by q3.cust
+	order by q3.cust
+),
+q5 as
+(
+	select q4.cust,sales.prod,q4.max_q as quantity,sales.date
+	from q4,sales
+	where q4.cust = sales.cust and sales.quant = q4.max_q
+	group by q4.cust,sales.prod,sales.date,q4.max_q
+),
+q6 as
+(
+	select sales.cust,sales.quant
+	from sales,q5,q2
+	where sales.cust = q5.cust and sales.cust = q2.cust and sales.prod != q5.prod and sales.prod != q2.prod and sales.quant < q5.quantity and sales.state = 'NJ'
+	group by sales.cust,sales.quant	
+),
+q7 as
+(
+	select q6.cust,max(q6.quant) as max_q
+	from q6
+	group by q6.cust
+	order by q6.cust
+)
+	select q7.cust,sales.prod,q7.max_q as quantity,sales.date
+	from q7,sales
+	where q7.cust = sales.cust and sales.quant = q7.max_q
+	group by q7.cust,sales.prod,sales.date,q7.max_q
+	
+	union
+	select q1.cust,sales.prod,q1.max_q as quantity,sales.date
+	from q1,sales
+	where q1.cust = sales.cust and sales.quant = q1.max_q
+	group by q1.cust,sales.prod,sales.date,q1.max_q
+	
+	union
+	select q4.cust,sales.prod,q4.max_q as quantity,sales.date
+	from q4,sales
+	where q4.cust = sales.cust and sales.quant = q4.max_q
+	group by q4.cust,sales.prod,sales.date,q4.max_q
+	order by cust
+	
+	
+	
+	
+--Q5	
+with q1 as
+(
+	select prod,quant 
+	from sales
+	order by prod,quant
+),
+q2 as (
+    select prod,count(quant) as count_quant
+    from sales
+    group by prod
+	order by prod
+),
+q3 as 
+(
+	select a1.prod,a1.quant,count(a2.quant) as comp_quant
+	from q1 as a1, q1 as a2
+	where a1.prod = a2.prod and a1.quant >= a2.quant
+	group by a1.prod,a1.quant
+	order by a1.prod,a1.quant
+),
+q4 as
+(
+	select prod,(count_quant +1)/2 as median_n
+	from q2
+)
+select q3.prod,q3.quant as median_quant
+from q3,q4
+where q3.prod = q4.prod and q3.comp_quant = q4.median_n
